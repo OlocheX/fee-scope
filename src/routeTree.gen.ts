@@ -14,6 +14,8 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as DocsRouteImport } from './routes/docs'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -42,6 +44,16 @@ const DocsRoute = DocsRouteImport.update({
   path: '/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TransactionsRoute = TransactionsRouteImport.update({
   id: '/transactions',
   path: '/transactions',
@@ -63,6 +75,8 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/compare': typeof CompareRoute
   '/docs': typeof DocsRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/transactions': typeof TransactionsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -72,6 +86,8 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/compare': typeof CompareRoute
   '/docs': typeof DocsRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/transactions': typeof TransactionsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -83,6 +99,8 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/compare': typeof CompareRoute
   '/docs': typeof DocsRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/transactions': typeof TransactionsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -94,6 +112,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compare'
     | '/docs'
+    | '/privacy'
+    | '/terms'
     | '/transactions'
     | '/dashboard'
     | '/auth/callback'
@@ -103,6 +123,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compare'
     | '/docs'
+    | '/privacy'
+    | '/terms'
     | '/transactions'
     | '/dashboard'
     | '/auth/callback'
@@ -113,6 +135,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compare'
     | '/docs'
+    | '/privacy'
+    | '/terms'
     | '/transactions'
     | '/_authenticated/dashboard'
     | '/auth/callback'
@@ -124,6 +148,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   CompareRoute: typeof CompareRoute
   DocsRoute: typeof DocsRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   TransactionsRoute: typeof TransactionsRoute
 }
 
@@ -162,6 +188,20 @@ declare module '@tanstack/react-router' {
       path: '/docs'
       fullPath: '/docs'
       preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/transactions': {
@@ -215,6 +255,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   CompareRoute: CompareRoute,
   DocsRoute: DocsRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   TransactionsRoute: TransactionsRoute,
 }
 export const routeTree = rootRouteImport
