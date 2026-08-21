@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function Header() {
-  const [user, setUser] = useState<{ id: string; email?: string | null } | null>(null);
+  const [user, setUser] = useState<{ id: string; email: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
@@ -19,14 +19,14 @@ export function Header() {
   useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getUser();
-      setUser(data.user ? { id: data.user.id, email: data.user.email } : null);
+      setUser(data.user ? { id: data.user.id, email: data.user.email ?? null } : null);
       setLoading(false);
     };
     getUser();
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" || event === "USER_UPDATED") {
-        setUser(session?.user ? { id: session.user.id, email: session.user.email } : null);
+        setUser(session?.user ? { id: session.user.id, email: session.user.email ?? null } : null);
       } else if (event === "SIGNED_OUT") {
         setUser(null);
       }
