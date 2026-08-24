@@ -87,7 +87,7 @@ const EVM_CHAINS: EvmChain[] = [
     name: "Ethereum",
     type: "Layer 1",
     symbol: "ETH",
-    rpc: ["https://eth.llamarpc.com", "https://cloudflare-eth.com", "https://rpc.ankr.com/eth"],
+    rpc: ["https://ethereum-rpc.publicnode.com", "https://cloudflare-eth.com"],
     gasLimit: 21000,
     priceId: "ethereum",
   },
@@ -103,7 +103,7 @@ const EVM_CHAINS: EvmChain[] = [
     name: "Arc",
     type: "Layer 1",
     symbol: "USDC",
-    rpc: ["https://rpc.arc.network", "https://rpc-testnet.arc.network"],
+    rpc: ["https://rpc.testnet.arc.network", "https://arc-testnet.drpc.org"],
     gasLimit: 21000,
     priceId: null,
     fixedPrice: 1,
@@ -235,8 +235,8 @@ async function suiFee(prices: Record<string, number>): Promise<ChainFee> {
     source: "JSON-RPC suix_getReferenceGasPrice",
   };
   const urls = ["https://fullnode.mainnet.sui.io:443", "https://sui-rpc.publicnode.com"];
-  // A simple SUI transfer settles around 2,000,000 computation+storage units.
-  const GAS_UNITS = 2_000_000;
+  // A simple SUI transfer settles around 7,600 gas units (~0.00076 SUI at 100 MIST).
+  const GAS_UNITS = 7_600;
   for (const url of urls) {
     try {
       const result = await jsonRpc<string | number>(url, "suix_getReferenceGasPrice");
