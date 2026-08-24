@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -49,6 +50,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof CompareRoute
   '/docs': typeof DocsRoute
   '/privacy': typeof PrivacyRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/transactions': typeof TransactionsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/compare': typeof CompareRoute
   '/docs': typeof DocsRoute
   '/privacy': typeof PrivacyRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/transactions': typeof TransactionsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/compare': typeof CompareRoute
   '/docs': typeof DocsRoute
   '/privacy': typeof PrivacyRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/transactions': typeof TransactionsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/docs'
     | '/privacy'
+    | '/sitemap.xml'
     | '/terms'
     | '/transactions'
     | '/dashboard'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/docs'
     | '/privacy'
+    | '/sitemap.xml'
     | '/terms'
     | '/transactions'
     | '/dashboard'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/docs'
     | '/privacy'
+    | '/sitemap.xml'
     | '/terms'
     | '/transactions'
     | '/_authenticated/dashboard'
@@ -149,6 +161,7 @@ export interface RootRouteChildren {
   CompareRoute: typeof CompareRoute
   DocsRoute: typeof DocsRoute
   PrivacyRoute: typeof PrivacyRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   TransactionsRoute: typeof TransactionsRoute
 }
@@ -195,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -256,6 +276,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompareRoute: CompareRoute,
   DocsRoute: DocsRoute,
   PrivacyRoute: PrivacyRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   TransactionsRoute: TransactionsRoute,
 }
