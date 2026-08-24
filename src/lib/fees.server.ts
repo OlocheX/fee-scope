@@ -152,25 +152,27 @@ async function solanaFee(prices: Record<string, number>): Promise<ChainFee> {
     native: null,
     gasPrice: null,
     status: "unavailable",
-    source: "JSON-RPC getFeeForMessage",
+    source: "JSON-RPC getRecentPrioritizationFees",
   };
-  // Base64 of a minimal one-signature transfer message; returns the live lamport fee.
-  const message =
-    "AQABA3wRPPS/aHkYb/kMv5N8mQyDVDkTGXwLNBLnPXCPRQdKgQrVL0y1ZnH0dQjNbz6c4LTNSXaJnLg8kQnBQvJDVzUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAECAgABDAIAAAAAypo7AAAAAA==";
+  const SIGNATURE_FEE_LAMPORTS = 5000; // protocol base fee per signature
+  const TRANSFER_COMPUTE_UNITS = 300; // typical SOL transfer
   const urls = ["https://api.mainnet-beta.solana.com", "https://solana-rpc.publicnode.com"];
   for (const url of urls) {
     try {
-      const result = await jsonRpc<{ value: number | null }>(url, "getFeeForMessage", [
-        message,
-        { commitment: "processed" },
-      ]);
-      const lamports = result?.value ?? 5000;
+      const fees = await jsonRpc<Array<{ prioritizationFee: number }>>(
+        url,
+        "getRecentPrioritizationFees",
+        [[]],
+      );
+      const samples = (fees ?? []).map((f) => f.prioritizationFee).sort((a, b) => a - b);
+      const median = samples.length ? samples[Math.floor(samples.length / 2)]! : 0;
+      const lamports = SIGNATURE_FEE_LAMPORTS + (median * TRANSFER_COMPUTE_UNITS) / 1e6;
       const sol = lamports / 1e9;
       const price = prices["solana"];
       return {
         ...base,
         status: "live",
-        gasPrice: `${lamports.toLocaleString()} lamports`,
+        gasPrice: `${Math.round(lamports).toLocaleString()} lamports (${median} µlamports/CU)`,
         native: `${fmt(sol)} SOL`,
         usd: typeof price === "number" ? sol * price : null,
       };
@@ -180,6 +182,7 @@ async function solanaFee(prices: Record<string, number>): Promise<ChainFee> {
   }
   return base;
 }
+
 
 async function moveFee(
   opts: { name: string; symbol: string; type: string; rpc: string[]; priceId: string; decimals: number; gasUnits: number },
