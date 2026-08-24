@@ -109,7 +109,7 @@ function ComparePage() {
         <h2 className="text-base font-semibold text-foreground">Methodology</h2>
         <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
           <li>EVM networks: <code>eth_gasPrice</code> × 21,000 gas for a native transfer.</li>
-          <li>Solana: live message fee from <code>getFeeForMessage</code>.</li>
+          <li>Solana: protocol signature fee plus the live median prioritization fee.</li>
           <li>Sui: reference gas price × typical transfer gas budget.</li>
           <li>Movement: <code>/estimate_gas_price</code> × typical transfer gas units.</li>
           <li>USD conversion uses public spot prices; Arc gas is denominated in USDC.</li>
