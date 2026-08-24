@@ -1,34 +1,45 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "@tanstack/react-router";
-import { ArrowLeft, BarChart3 } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
+import { getChainFees } from "@/lib/fees.functions";
+
+const feesQueryOptions = queryOptions({
+  queryKey: ["chain-fees"],
+  queryFn: () => getChainFees(),
+  staleTime: 60_000,
+  refetchInterval: 60_000,
+});
 
 export const Route = createFileRoute("/compare")({
   head: () => ({
     meta: [
       { title: "Compare fees — FeeScope" },
-      { name: "description", content: "Compare transaction fees across Arc, Ethereum, Solana, Sui, Movement, and other networks." },
+      { name: "description", content: "Live transaction fee estimates across Arc, Ethereum, Solana, Sui, Movement, and Base, sourced directly from public RPC endpoints." },
       { property: "og:title", content: "Compare fees — FeeScope" },
-      { property: "og:description", content: "Compare transaction fees across Arc, Ethereum, Solana, Sui, Movement, and more." },
+      { property: "og:description", content: "Live transaction fee estimates across Arc, Ethereum, Solana, Sui, Movement, and Base." },
+      { property: "og:url", content: "https://fee-scope.lovable.app/compare" },
     ],
+    links: [{ rel: "canonical", href: "https://fee-scope.lovable.app/compare" }],
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(feesQueryOptions),
   component: ComparePage,
 });
 
-const chains = [
-  { name: "Arc", fee: "~$0.0001", gas: "0.001 ARC", type: "Layer 1" },
-  { name: "Solana", fee: "~$0.0005", gas: "0.000005 SOL", type: "Layer 1" },
-  { name: "Sui", fee: "~$0.001", gas: "0.0001 SUI", type: "Layer 1" },
-  { name: "Ethereum", fee: "~$1.20", gas: "12 gwei", type: "Layer 1" },
-  { name: "Base", fee: "~$0.05", gas: "0.1 gwei", type: "Layer 2" },
-  { name: "Movement", fee: "~$0.002", gas: "0.0001 MOVE", type: "Move VM" },
-];
+function formatUsd(usd: number | null): string {
+  if (usd === null) return "—";
+  if (usd < 0.01) return `$${usd.toFixed(6).replace(/0+$/, "")}`;
+  return `$${usd.toFixed(usd < 1 ? 4 : 2)}`;
+}
 
 function ComparePage() {
+  const { data, isFetching, refetch } = useSuspenseQuery(feesQueryOptions);
+  const liveCount = data.chains.filter((c) => c.status === "live").length;
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-8 flex items-center gap-4">
+      <div className="mb-8 flex flex-wrap items-center gap-4">
         <Button variant="outline" size="sm" asChild>
           <Link to="/">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -36,14 +47,30 @@ function ComparePage() {
           </Link>
         </Button>
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">Fee comparison</h1>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto"
+          onClick={() => refetch()}
+          disabled={isFetching}
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
-      <p className="mb-8 max-w-2xl text-muted-foreground">
-        Estimated network costs for a typical token transfer. These values are illustrative placeholders and will be replaced with live RPC data as integrations are added.
-      </p>
+      <div className="mb-8 max-w-2xl">
+        <p className="text-muted-foreground">
+          Live cost of a simple native token transfer, computed from each network's current
+          gas price and spot token price. {liveCount} of {data.chains.length} networks reporting.
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Updated {new Date(data.updatedAt).toLocaleTimeString()} · refreshes automatically every minute
+        </p>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {chains.map((chain) => (
+        {data.chains.map((chain) => (
           <Card key={chain.name} className="transition-shadow hover:shadow-md">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -52,22 +79,41 @@ function ComparePage() {
                   {chain.type}
                 </span>
               </div>
-              <CardDescription>Estimated transfer cost</CardDescription>
+              <CardDescription>
+                {chain.status === "live" ? "Live transfer cost" : "Network not reporting"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{chain.fee}</div>
-              <p className="mt-1 text-sm text-muted-foreground">{chain.gas}</p>
+              <div className="text-3xl font-bold text-foreground">
+                {chain.status === "live" ? formatUsd(chain.usd) : "—"}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {chain.status === "live"
+                  ? [chain.native, chain.gasPrice].filter(Boolean).join(" · ")
+                  : "Public endpoint unreachable right now"}
+              </p>
+              <div className="mt-4 flex items-center gap-2">
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    chain.status === "live" ? "bg-emerald-500" : "bg-muted-foreground/40"
+                  }`}
+                />
+                <span className="text-xs text-muted-foreground">{chain.source}</span>
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="mt-12 rounded-2xl border border-border bg-muted/30 p-8 text-center">
-        <BarChart3 className="mx-auto h-10 w-10 text-muted-foreground" />
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Live comparison engine coming soon</h2>
-        <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-          We’re wiring up real-time RPC and DEX endpoints for each supported chain so you can compare swap, bridge, and gas fees with precision.
-        </p>
+      <div className="mt-12 rounded-2xl border border-border bg-muted/30 p-6">
+        <h2 className="text-base font-semibold text-foreground">Methodology</h2>
+        <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+          <li>EVM networks: <code>eth_gasPrice</code> × 21,000 gas for a native transfer.</li>
+          <li>Solana: protocol signature fee plus the live median prioritization fee.</li>
+          <li>Sui: reference gas price × typical transfer gas budget.</li>
+          <li>Movement: <code>/estimate_gas_price</code> × typical transfer gas units.</li>
+          <li>USD conversion uses public spot prices; Arc gas is denominated in USDC.</li>
+        </ul>
       </div>
     </div>
   );

@@ -87,7 +87,7 @@ const EVM_CHAINS: EvmChain[] = [
     name: "Ethereum",
     type: "Layer 1",
     symbol: "ETH",
-    rpc: ["https://eth.llamarpc.com", "https://cloudflare-eth.com", "https://rpc.ankr.com/eth"],
+    rpc: ["https://ethereum-rpc.publicnode.com", "https://cloudflare-eth.com"],
     gasLimit: 21000,
     priceId: "ethereum",
   },
@@ -103,7 +103,7 @@ const EVM_CHAINS: EvmChain[] = [
     name: "Arc",
     type: "Layer 1",
     symbol: "USDC",
-    rpc: ["https://rpc.arc.network", "https://rpc-testnet.arc.network"],
+    rpc: ["https://rpc.testnet.arc.network", "https://arc-testnet.drpc.org"],
     gasLimit: 21000,
     priceId: null,
     fixedPrice: 1,
@@ -152,25 +152,27 @@ async function solanaFee(prices: Record<string, number>): Promise<ChainFee> {
     native: null,
     gasPrice: null,
     status: "unavailable",
-    source: "JSON-RPC getFeeForMessage",
+    source: "JSON-RPC getRecentPrioritizationFees",
   };
-  // Base64 of a minimal one-signature transfer message; returns the live lamport fee.
-  const message =
-    "AQABA3wRPPS/aHkYb/kMv5N8mQyDVDkTGXwLNBLnPXCPRQdKgQrVL0y1ZnH0dQjNbz6c4LTNSXaJnLg8kQnBQvJDVzUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAECAgABDAIAAAAAypo7AAAAAA==";
+  const SIGNATURE_FEE_LAMPORTS = 5000; // protocol base fee per signature
+  const TRANSFER_COMPUTE_UNITS = 300; // typical SOL transfer
   const urls = ["https://api.mainnet-beta.solana.com", "https://solana-rpc.publicnode.com"];
   for (const url of urls) {
     try {
-      const result = await jsonRpc<{ value: number | null }>(url, "getFeeForMessage", [
-        message,
-        { commitment: "processed" },
-      ]);
-      const lamports = result?.value ?? 5000;
+      const fees = await jsonRpc<Array<{ prioritizationFee: number }>>(
+        url,
+        "getRecentPrioritizationFees",
+        [[]],
+      );
+      const samples = (fees ?? []).map((f) => f.prioritizationFee).sort((a, b) => a - b);
+      const median = samples.length ? samples[Math.floor(samples.length / 2)]! : 0;
+      const lamports = SIGNATURE_FEE_LAMPORTS + (median * TRANSFER_COMPUTE_UNITS) / 1e6;
       const sol = lamports / 1e9;
       const price = prices["solana"];
       return {
         ...base,
         status: "live",
-        gasPrice: `${lamports.toLocaleString()} lamports`,
+        gasPrice: `${Math.round(lamports).toLocaleString()} lamports (${median} µlamports/CU)`,
         native: `${fmt(sol)} SOL`,
         usd: typeof price === "number" ? sol * price : null,
       };
@@ -180,6 +182,7 @@ async function solanaFee(prices: Record<string, number>): Promise<ChainFee> {
   }
   return base;
 }
+
 
 async function moveFee(
   opts: { name: string; symbol: string; type: string; rpc: string[]; priceId: string; decimals: number; gasUnits: number },
@@ -235,8 +238,8 @@ async function suiFee(prices: Record<string, number>): Promise<ChainFee> {
     source: "JSON-RPC suix_getReferenceGasPrice",
   };
   const urls = ["https://fullnode.mainnet.sui.io:443", "https://sui-rpc.publicnode.com"];
-  // A simple SUI transfer settles around 2,000,000 computation+storage units.
-  const GAS_UNITS = 2_000_000;
+  // A simple SUI transfer settles around 7,600 gas units (~0.00076 SUI at 100 MIST).
+  const GAS_UNITS = 7_600;
   for (const url of urls) {
     try {
       const result = await jsonRpc<string | number>(url, "suix_getReferenceGasPrice");
