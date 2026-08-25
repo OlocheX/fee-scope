@@ -74,7 +74,7 @@ function ComparePage() {
           Live cost of a simple native token transfer, computed from each network's current
           gas price and spot token price. {liveCount} of {data.chains.length} networks reporting.
         </p>
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mt-2 text-xs text-muted-foreground" suppressHydrationWarning>
           Updated {formatUpdatedTime(data.updatedAt)} · refreshes automatically every minute
         </p>
       </div>
