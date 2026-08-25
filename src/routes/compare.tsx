@@ -33,6 +33,16 @@ function formatUsd(usd: number | null): string {
   return `$${usd.toFixed(usd < 1 ? 4 : 2)}`;
 }
 
+function formatUpdatedTime(updatedAt: string): string {
+  return new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  }).format(new Date(updatedAt));
+}
+
 function ComparePage() {
   const { data, isFetching, refetch } = useSuspenseQuery(feesQueryOptions);
   const liveCount = data.chains.filter((c) => c.status === "live").length;
@@ -64,8 +74,8 @@ function ComparePage() {
           Live cost of a simple native token transfer, computed from each network's current
           gas price and spot token price. {liveCount} of {data.chains.length} networks reporting.
         </p>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Updated {new Date(data.updatedAt).toLocaleTimeString()} · refreshes automatically every minute
+        <p className="mt-2 text-xs text-muted-foreground" suppressHydrationWarning>
+          Updated {formatUpdatedTime(data.updatedAt)} · refreshes automatically every minute
         </p>
       </div>
 
