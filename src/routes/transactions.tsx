@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ExternalLink, Loader2, Search } from "lucide-react";
 import { lookupQuery } from "@/lib/lookup.functions";
+import {
+  ChainFeeCompare,
+  SUPPORTED_CHAINS,
+  feesQueryOptions,
+} from "@/components/transactions/ChainFeeCompare";
 
 export const Route = createFileRoute("/transactions")({
   validateSearch: (search: Record<string, unknown>): { q?: string; a?: string; b?: string } => {
