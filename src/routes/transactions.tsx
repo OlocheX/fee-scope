@@ -81,6 +81,17 @@ function TransactionsPage() {
   const chainsWithHits = data?.chains.filter((c) => c.status === "found") ?? [];
   const otherChains = data?.chains.filter((c) => c.status !== "found") ?? [];
 
+  const addressStats = chainsWithHits.map((c) => {
+    const priced = c.txs.filter((t) => typeof t.feeUsd === "number") as Array<{ feeUsd: number }>;
+    const totalUsd = priced.length ? priced.reduce((sum, t) => sum + t.feeUsd, 0) : null;
+    return {
+      chain: c.chain,
+      count: c.txs.length,
+      totalUsd,
+      avgUsd: totalUsd === null ? null : totalUsd / priced.length,
+    };
+  });
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-6 flex items-center gap-4">
