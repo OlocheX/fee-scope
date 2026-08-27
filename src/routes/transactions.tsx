@@ -135,6 +135,15 @@ function TransactionsPage() {
         </Button>
       </form>
 
+      <ChainFeeCompare
+        chainA={chainA}
+        chainB={chainB}
+        onChangeA={(next) => navigate({ search: (prev) => ({ ...prev, a: next }) })}
+        onChangeB={(next) => navigate({ search: (prev) => ({ ...prev, b: next }) })}
+        addressStats={addressStats}
+        hasAddressData={chainsWithHits.length > 0}
+      />
+
       {!q && (
         <div className="rounded-2xl border border-border bg-muted/30 p-6 text-sm text-muted-foreground">
           Enter an address or hash above to begin. Supported formats: EVM addresses and hashes
