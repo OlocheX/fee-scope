@@ -215,9 +215,12 @@ async function evmTx(chain: EvmChain, hash: string, px: Record<string, number>):
       ],
     };
   } catch (e) {
+    // A hash that doesn't exist on this chain is a normal outcome, not an error.
     const msg = e instanceof Error ? e.message : "Lookup failed";
-    if (/not found|empty rpc result/i.test(msg)) return shell;
-    return { ...shell, status: "error", note: msg };
+    if (/fetch|abort|network|responded 5/i.test(msg)) {
+      return { ...shell, status: "error", note: "Endpoint unreachable" };
+    }
+    return shell;
   }
 }
 
