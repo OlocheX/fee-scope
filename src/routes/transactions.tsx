@@ -9,10 +9,19 @@ import { ArrowLeft, ExternalLink, Loader2, Search } from "lucide-react";
 import { lookupQuery } from "@/lib/lookup.functions";
 
 export const Route = createFileRoute("/transactions")({
-  validateSearch: (search: Record<string, unknown>): { q?: string } =>
-    typeof search["q"] === "string" && search["q"].length > 0
-      ? { q: search["q"].slice(0, 120) }
-      : {},
+  validateSearch: (search: Record<string, unknown>): { q?: string; a?: string; b?: string } => {
+    const out: { q?: string; a?: string; b?: string } = {};
+    if (typeof search["q"] === "string" && search["q"].length > 0)
+      out.q = search["q"].slice(0, 120);
+    if (typeof search["a"] === "string" && SUPPORTED_CHAINS.includes(search["a"] as never))
+      out.a = search["a"];
+    if (typeof search["b"] === "string" && SUPPORTED_CHAINS.includes(search["b"] as never))
+      out.b = search["b"];
+    return out;
+  },
+  loader: ({ context }) => {
+    context.queryClient.ensureQueryData(feesQueryOptions);
+  },
   head: () => ({
     meta: [
       { title: "Transaction & address explorer — FeeScope" },
