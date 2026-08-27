@@ -7,12 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ExternalLink, Loader2, Search } from "lucide-react";
 import { lookupQuery } from "@/lib/lookup.functions";
+import {
+  ChainFeeCompare,
+  SUPPORTED_CHAINS,
+  feesQueryOptions,
+} from "@/components/transactions/ChainFeeCompare";
 
 export const Route = createFileRoute("/transactions")({
-  validateSearch: (search: Record<string, unknown>): { q?: string } =>
-    typeof search["q"] === "string" && search["q"].length > 0
-      ? { q: search["q"].slice(0, 120) }
-      : {},
+  validateSearch: (search: Record<string, unknown>): { q?: string; a?: string; b?: string } => {
+    const out: { q?: string; a?: string; b?: string } = {};
+    if (typeof search["q"] === "string" && search["q"].length > 0)
+      out.q = search["q"].slice(0, 120);
+    if (typeof search["a"] === "string" && SUPPORTED_CHAINS.includes(search["a"] as never))
+      out.a = search["a"];
+    if (typeof search["b"] === "string" && SUPPORTED_CHAINS.includes(search["b"] as never))
+      out.b = search["b"];
+    return out;
+  },
+  loader: ({ context }) => {
+    context.queryClient.ensureQueryData(feesQueryOptions);
+  },
   head: () => ({
     meta: [
       { title: "Transaction & address explorer — FeeScope" },
@@ -52,7 +66,7 @@ function formatWhen(iso: string | null) {
 }
 
 function TransactionsPage() {
-  const { q = "" } = Route.useSearch();
+  const { q = "", a: chainA = "Arc", b: chainB = "Ethereum" } = Route.useSearch();
   const navigate = useNavigate({ from: "/transactions" });
   const [input, setInput] = useState(q);
   const runLookup = useServerFn(lookupQuery);
@@ -66,6 +80,17 @@ function TransactionsPage() {
 
   const chainsWithHits = data?.chains.filter((c) => c.status === "found") ?? [];
   const otherChains = data?.chains.filter((c) => c.status !== "found") ?? [];
+
+  const addressStats = chainsWithHits.map((c) => {
+    const priced = c.txs.filter((t) => typeof t.feeUsd === "number") as Array<{ feeUsd: number }>;
+    const totalUsd = priced.length ? priced.reduce((sum, t) => sum + t.feeUsd, 0) : null;
+    return {
+      chain: c.chain,
+      count: c.txs.length,
+      totalUsd,
+      avgUsd: totalUsd === null ? null : totalUsd / priced.length,
+    };
+  });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -90,7 +115,7 @@ function TransactionsPage() {
         className="mb-8 flex max-w-2xl gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          navigate({ search: { q: input.trim() } });
+          navigate({ search: (prev) => ({ ...prev, q: input.trim() }) });
         }}
       >
         <Input
@@ -109,6 +134,15 @@ function TransactionsPage() {
           Search
         </Button>
       </form>
+
+      <ChainFeeCompare
+        chainA={chainA}
+        chainB={chainB}
+        onChangeA={(next) => navigate({ search: (prev) => ({ ...prev, a: next }) })}
+        onChangeB={(next) => navigate({ search: (prev) => ({ ...prev, b: next }) })}
+        addressStats={addressStats}
+        hasAddressData={chainsWithHits.length > 0}
+      />
 
       {!q && (
         <div className="rounded-2xl border border-border bg-muted/30 p-6 text-sm text-muted-foreground">
