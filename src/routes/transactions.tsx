@@ -115,7 +115,7 @@ function TransactionsPage() {
         className="mb-8 flex max-w-2xl gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          navigate({ search: { q: input.trim() } });
+          navigate({ search: (prev) => ({ ...prev, q: input.trim() }) });
         }}
       >
         <Input
