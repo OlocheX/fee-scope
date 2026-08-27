@@ -265,7 +265,11 @@ async function evmAddress(
         return {
           chain: chain.name,
           hash: it.hash,
-          kind: it.method ?? "Transaction",
+          kind: !it.method
+            ? "Transfer"
+            : /^0x[0-9a-fA-F]{8}$/.test(it.method)
+              ? "Contract call"
+              : it.method,
           status: it.status === "ok" ? "success" : it.status ? "failed" : "unknown",
           from: it.from?.hash ?? null,
           to: it.to?.hash ?? null,
