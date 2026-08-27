@@ -215,9 +215,12 @@ async function evmTx(chain: EvmChain, hash: string, px: Record<string, number>):
       ],
     };
   } catch (e) {
+    // A hash that doesn't exist on this chain is a normal outcome, not an error.
     const msg = e instanceof Error ? e.message : "Lookup failed";
-    if (/not found|empty rpc result/i.test(msg)) return shell;
-    return { ...shell, status: "error", note: msg };
+    if (/fetch|abort|network|responded 5/i.test(msg)) {
+      return { ...shell, status: "error", note: "Endpoint unreachable" };
+    }
+    return shell;
   }
 }
 
@@ -256,7 +259,7 @@ async function evmAddress(
           to?: { hash?: string } | null;
           fee?: { value?: string } | null;
         }>;
-      }>(`${chain.blockscout}/api/v2/addresses/${address}/transactions?filter=to%20%7C%20from`);
+      }>(`${chain.blockscout}/api/v2/addresses/${address}/transactions`);
 
       const items = (body.items ?? []).slice(0, 10);
       const txs: TxRow[] = items.map((it) => {
@@ -265,7 +268,11 @@ async function evmAddress(
         return {
           chain: chain.name,
           hash: it.hash,
-          kind: it.method ?? "Transaction",
+          kind: !it.method
+            ? "Transfer"
+            : /^0x[0-9a-fA-F]{8}$/.test(it.method)
+              ? "Contract call"
+              : it.method,
           status: it.status === "ok" ? "success" : it.status ? "failed" : "unknown",
           from: it.from?.hash ?? null,
           to: it.to?.hash ?? null,
