@@ -66,7 +66,7 @@ function formatWhen(iso: string | null) {
 }
 
 function TransactionsPage() {
-  const { q = "" } = Route.useSearch();
+  const { q = "", a: chainA = "Arc", b: chainB = "Ethereum" } = Route.useSearch();
   const navigate = useNavigate({ from: "/transactions" });
   const [input, setInput] = useState(q);
   const runLookup = useServerFn(lookupQuery);
