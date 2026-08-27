@@ -256,7 +256,7 @@ async function evmAddress(
           to?: { hash?: string } | null;
           fee?: { value?: string } | null;
         }>;
-      }>(`${chain.blockscout}/api/v2/addresses/${address}/transactions?filter=to%20%7C%20from`);
+      }>(`${chain.blockscout}/api/v2/addresses/${address}/transactions`);
 
       const items = (body.items ?? []).slice(0, 10);
       const txs: TxRow[] = items.map((it) => {
