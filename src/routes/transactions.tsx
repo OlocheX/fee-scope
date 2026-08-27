@@ -9,8 +9,8 @@ import { ArrowLeft, ExternalLink, Loader2, Search } from "lucide-react";
 import { lookupQuery } from "@/lib/lookup.functions";
 
 export const Route = createFileRoute("/transactions")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    q: typeof search.q === "string" ? search.q.slice(0, 120) : "",
+  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
+    q: typeof search["q"] === "string" ? search["q"].slice(0, 120) : undefined,
   }),
   head: () => ({
     meta: [
@@ -51,7 +51,7 @@ function formatWhen(iso: string | null) {
 }
 
 function TransactionsPage() {
-  const { q } = Route.useSearch();
+  const { q = "" } = Route.useSearch();
   const navigate = useNavigate({ from: "/transactions" });
   const [input, setInput] = useState(q);
   const runLookup = useServerFn(lookupQuery);
