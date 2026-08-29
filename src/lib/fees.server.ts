@@ -42,7 +42,41 @@ async function jsonRpc<T>(url: string, method: string, params: unknown[] = []): 
   }
 }
 
+/** Fallback spot-price source when CoinGecko is rate limited or unreachable. */
+const SYMBOL_BY_PRICE_ID: Record<string, string> = {
+  ethereum: "ETH",
+  solana: "SOL",
+  sui: "SUI",
+  movement: "MOVE",
+  aptos: "APT",
+  "matic-network": "POL",
+  "avalanche-2": "AVAX",
+  binancecoin: "BNB",
+  celo: "CELO",
+  fantom: "FTM",
+};
+
+async function coinbaseSpot(symbol: string): Promise<number | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(`https://api.coinbase.com/v2/prices/${symbol}-USD/spot`, {
+      signal: controller.signal,
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { data?: { amount?: string } };
+    const amount = Number(body.data?.amount);
+    return Number.isFinite(amount) ? amount : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function getPrices(ids: string[]): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -50,19 +84,28 @@ async function getPrices(ids: string[]): Promise<Record<string, number>> {
       `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=usd`,
       { signal: controller.signal, headers: { accept: "application/json" } },
     );
-    if (!res.ok) throw new Error(`Price API responded ${res.status}`);
-    const body = (await res.json()) as Record<string, { usd?: number }>;
-    const out: Record<string, number> = {};
-    for (const [id, value] of Object.entries(body)) {
-      if (typeof value?.usd === "number") out[id] = value.usd;
+    if (res.ok) {
+      const body = (await res.json()) as Record<string, { usd?: number }>;
+      for (const [id, value] of Object.entries(body)) {
+        if (typeof value?.usd === "number") out[id] = value.usd;
+      }
     }
-    return out;
   } catch {
-    return {};
+    // fall through to the per-symbol fallback below
   } finally {
     clearTimeout(timer);
   }
+
+  const missing = ids.filter((id) => typeof out[id] !== "number" && SYMBOL_BY_PRICE_ID[id]);
+  const fallbacks = await Promise.all(
+    missing.map(async (id) => [id, await coinbaseSpot(SYMBOL_BY_PRICE_ID[id]!)] as const),
+  );
+  for (const [id, price] of fallbacks) {
+    if (typeof price === "number") out[id] = price;
+  }
+  return out;
 }
+
 
 function fmt(n: number): string {
   if (n === 0) return "0";
@@ -108,7 +151,56 @@ const EVM_CHAINS: EvmChain[] = [
     priceId: null,
     fixedPrice: 1,
   },
+  {
+    name: "Arbitrum",
+    type: "Layer 2",
+    symbol: "ETH",
+    rpc: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com"],
+    gasLimit: 21000,
+    priceId: "ethereum",
+  },
+  {
+    name: "Optimism",
+    type: "Layer 2",
+    symbol: "ETH",
+    rpc: ["https://mainnet.optimism.io", "https://optimism-rpc.publicnode.com"],
+    gasLimit: 21000,
+    priceId: "ethereum",
+  },
+  {
+    name: "Polygon",
+    type: "Layer 1",
+    symbol: "POL",
+    rpc: ["https://polygon-rpc.com", "https://polygon-bor-rpc.publicnode.com"],
+    gasLimit: 21000,
+    priceId: "matic-network",
+  },
+  {
+    name: "Avalanche",
+    type: "Layer 1",
+    symbol: "AVAX",
+    rpc: ["https://api.avax.network/ext/bc/C/rpc", "https://avalanche-c-chain-rpc.publicnode.com"],
+    gasLimit: 21000,
+    priceId: "avalanche-2",
+  },
+  {
+    name: "BNB Chain",
+    type: "Layer 1",
+    symbol: "BNB",
+    rpc: ["https://bsc-dataseed.bnbchain.org", "https://bsc-rpc.publicnode.com"],
+    gasLimit: 21000,
+    priceId: "binancecoin",
+  },
+  {
+    name: "Celo",
+    type: "Layer 2",
+    symbol: "CELO",
+    rpc: ["https://forno.celo.org", "https://celo-rpc.publicnode.com"],
+    gasLimit: 21000,
+    priceId: "celo",
+  },
 ];
+
 
 async function evmFee(chain: EvmChain, prices: Record<string, number>): Promise<ChainFee> {
   const base: ChainFee = {
@@ -261,12 +353,20 @@ async function suiFee(prices: Record<string, number>): Promise<ChainFee> {
 }
 
 export async function collectChainFees(): Promise<{ chains: ChainFee[]; updatedAt: string }> {
-  const prices = await getPrices(["ethereum", "solana", "sui", "movement"]);
+  const prices = await getPrices([
+    "ethereum",
+    "solana",
+    "sui",
+    "movement",
+    "aptos",
+    "matic-network",
+    "avalanche-2",
+    "binancecoin",
+    "celo",
+  ]);
 
   const results = await Promise.all([
-    evmFee(EVM_CHAINS[0]!, prices), // Ethereum
-    evmFee(EVM_CHAINS[1]!, prices), // Base
-    evmFee(EVM_CHAINS[2]!, prices), // Arc
+    ...EVM_CHAINS.map((chain) => evmFee(chain, prices)),
     solanaFee(prices),
     suiFee(prices),
     moveFee(
@@ -281,10 +381,37 @@ export async function collectChainFees(): Promise<{ chains: ChainFee[]; updatedA
       },
       prices,
     ),
+    moveFee(
+      {
+        name: "Aptos",
+        symbol: "APT",
+        type: "Move VM",
+        rpc: ["https://fullnode.mainnet.aptoslabs.com/v1", "https://aptos-mainnet.pontem.network/v1"],
+        priceId: "aptos",
+        decimals: 8,
+        gasUnits: 1000,
+      },
+      prices,
+    ),
   ]);
 
-  const order = ["Arc", "Solana", "Sui", "Movement", "Base", "Ethereum"];
+  const order = [
+    "Arc",
+    "Solana",
+    "Sui",
+    "Movement",
+    "Aptos",
+    "Base",
+    "Arbitrum",
+    "Optimism",
+    "Polygon",
+    "Avalanche",
+    "BNB Chain",
+    "Celo",
+    "Ethereum",
+  ];
   results.sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
 
   return { chains: results, updatedAt: new Date().toISOString() };
+
 }

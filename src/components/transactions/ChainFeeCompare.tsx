@@ -11,7 +11,22 @@ import {
 } from "@/components/ui/select";
 import { getChainFees } from "@/lib/fees.functions";
 
-export const SUPPORTED_CHAINS = ["Arc", "Ethereum", "Base", "Solana", "Sui", "Movement"] as const;
+export const SUPPORTED_CHAINS = [
+  "Arc",
+  "Ethereum",
+  "Base",
+  "Arbitrum",
+  "Optimism",
+  "Polygon",
+  "Avalanche",
+  "BNB Chain",
+  "Celo",
+  "Solana",
+  "Sui",
+  "Movement",
+  "Aptos",
+] as const;
+
 
 export const feesQueryOptions = queryOptions({
   queryKey: ["chain-fees"],
@@ -40,6 +55,7 @@ function Column({
   network,
   stat,
   cheaper,
+  options,
 }: {
   label: string;
   value: string;
@@ -47,6 +63,7 @@ function Column({
   network: { usd: number | null; native: string | null; status: string } | undefined;
   stat: AddressStat | undefined;
   cheaper: boolean;
+  options: string[];
 }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -65,13 +82,14 @@ function Column({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {SUPPORTED_CHAINS.map((c) => (
+          {options.map((c) => (
             <SelectItem key={c} value={c}>
               {c}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
+
 
       <dl className="mt-4 space-y-3 text-sm">
         <div>
@@ -128,12 +146,26 @@ export function ChainFeeCompare({
     [addressStats],
   );
 
+  const options = useMemo(() => {
+    const names = data.chains.map((c) => c.name);
+    for (const c of SUPPORTED_CHAINS) if (!names.includes(c)) names.push(c);
+    return names;
+  }, [data.chains]);
+
   const a = byName[chainA];
   const b = byName[chainB];
   const aUsd = a?.status === "live" ? a.usd : null;
   const bUsd = b?.status === "live" ? b.usd : null;
 
-  let verdict = "Live fees unavailable for one of the selected networks.";
+  const missing = [
+    aUsd === null ? chainA : null,
+    bUsd === null ? chainB : null,
+  ].filter(Boolean) as string[];
+
+  let verdict =
+    missing.length > 0
+      ? `Live fee data for ${missing.join(" and ")} isn't reporting right now — retrying automatically.`
+      : "";
   if (aUsd !== null && bUsd !== null && aUsd > 0 && bUsd > 0) {
     const cheap = aUsd <= bUsd ? chainA : chainB;
     const ratio = Math.max(aUsd, bUsd) / Math.min(aUsd, bUsd);
@@ -159,6 +191,7 @@ export function ChainFeeCompare({
             network={a}
             stat={statByName[chainA]}
             cheaper={aUsd !== null && bUsd !== null && aUsd < bUsd}
+            options={options}
           />
           <Column
             label="Chain B"
@@ -167,8 +200,10 @@ export function ChainFeeCompare({
             network={b}
             stat={statByName[chainB]}
             cheaper={aUsd !== null && bUsd !== null && bUsd < aUsd}
+            options={options}
           />
         </div>
+
         <p className="mt-4 text-sm text-muted-foreground">{verdict}</p>
       </CardContent>
     </Card>
