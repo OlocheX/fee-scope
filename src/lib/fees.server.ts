@@ -42,7 +42,41 @@ async function jsonRpc<T>(url: string, method: string, params: unknown[] = []): 
   }
 }
 
+/** Fallback spot-price source when CoinGecko is rate limited or unreachable. */
+const SYMBOL_BY_PRICE_ID: Record<string, string> = {
+  ethereum: "ETH",
+  solana: "SOL",
+  sui: "SUI",
+  movement: "MOVE",
+  aptos: "APT",
+  "matic-network": "POL",
+  "avalanche-2": "AVAX",
+  binancecoin: "BNB",
+  celo: "CELO",
+  fantom: "FTM",
+};
+
+async function coinbaseSpot(symbol: string): Promise<number | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(`https://api.coinbase.com/v2/prices/${symbol}-USD/spot`, {
+      signal: controller.signal,
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { data?: { amount?: string } };
+    const amount = Number(body.data?.amount);
+    return Number.isFinite(amount) ? amount : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function getPrices(ids: string[]): Promise<Record<string, number>> {
+  const out: Record<string, number> = {};
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -50,19 +84,28 @@ async function getPrices(ids: string[]): Promise<Record<string, number>> {
       `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=usd`,
       { signal: controller.signal, headers: { accept: "application/json" } },
     );
-    if (!res.ok) throw new Error(`Price API responded ${res.status}`);
-    const body = (await res.json()) as Record<string, { usd?: number }>;
-    const out: Record<string, number> = {};
-    for (const [id, value] of Object.entries(body)) {
-      if (typeof value?.usd === "number") out[id] = value.usd;
+    if (res.ok) {
+      const body = (await res.json()) as Record<string, { usd?: number }>;
+      for (const [id, value] of Object.entries(body)) {
+        if (typeof value?.usd === "number") out[id] = value.usd;
+      }
     }
-    return out;
   } catch {
-    return {};
+    // fall through to the per-symbol fallback below
   } finally {
     clearTimeout(timer);
   }
+
+  const missing = ids.filter((id) => typeof out[id] !== "number" && SYMBOL_BY_PRICE_ID[id]);
+  const fallbacks = await Promise.all(
+    missing.map(async (id) => [id, await coinbaseSpot(SYMBOL_BY_PRICE_ID[id]!)] as const),
+  );
+  for (const [id, price] of fallbacks) {
+    if (typeof price === "number") out[id] = price;
+  }
+  return out;
 }
+
 
 function fmt(n: number): string {
   if (n === 0) return "0";
