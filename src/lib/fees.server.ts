@@ -353,12 +353,20 @@ async function suiFee(prices: Record<string, number>): Promise<ChainFee> {
 }
 
 export async function collectChainFees(): Promise<{ chains: ChainFee[]; updatedAt: string }> {
-  const prices = await getPrices(["ethereum", "solana", "sui", "movement"]);
+  const prices = await getPrices([
+    "ethereum",
+    "solana",
+    "sui",
+    "movement",
+    "aptos",
+    "matic-network",
+    "avalanche-2",
+    "binancecoin",
+    "celo",
+  ]);
 
   const results = await Promise.all([
-    evmFee(EVM_CHAINS[0]!, prices), // Ethereum
-    evmFee(EVM_CHAINS[1]!, prices), // Base
-    evmFee(EVM_CHAINS[2]!, prices), // Arc
+    ...EVM_CHAINS.map((chain) => evmFee(chain, prices)),
     solanaFee(prices),
     suiFee(prices),
     moveFee(
@@ -373,10 +381,37 @@ export async function collectChainFees(): Promise<{ chains: ChainFee[]; updatedA
       },
       prices,
     ),
+    moveFee(
+      {
+        name: "Aptos",
+        symbol: "APT",
+        type: "Move VM",
+        rpc: ["https://fullnode.mainnet.aptoslabs.com/v1", "https://aptos-mainnet.pontem.network/v1"],
+        priceId: "aptos",
+        decimals: 8,
+        gasUnits: 1000,
+      },
+      prices,
+    ),
   ]);
 
-  const order = ["Arc", "Solana", "Sui", "Movement", "Base", "Ethereum"];
+  const order = [
+    "Arc",
+    "Solana",
+    "Sui",
+    "Movement",
+    "Aptos",
+    "Base",
+    "Arbitrum",
+    "Optimism",
+    "Polygon",
+    "Avalanche",
+    "BNB Chain",
+    "Celo",
+    "Ethereum",
+  ];
   results.sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
 
   return { chains: results, updatedAt: new Date().toISOString() };
+
 }
