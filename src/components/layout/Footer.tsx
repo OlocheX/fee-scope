@@ -35,7 +35,7 @@ export function Footer() {
         <div className="mt-8 flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} FeeScope. Compare fees across Arc, Ethereum, Solana, and more.</span>
           <a
-            href="https://www.arc.net"
+            href="https://www.arc.io/?_gl=1*3w0apa*_gcl_au*MTM1MzkxNzA1NS4xNzg2NjE0Njk0Li0uLS4xNzg3ODY5ODc2LjE4ODAzMjYyNTEuMTc4ODA0MzczNi4xNzg4MDQzNzM2*_ga*NzU3NzU2MDEyLjE3Nzg4Mzc2MDQ.*_ga_TFHGH9W48Q*czE3ODgwNDM3MDYkbzIwOCRnMSR0MTc4ODA0Mzc1NiRqMTAkbDAkaDI5MjExMDQwNg.."
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
