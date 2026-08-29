@@ -151,7 +151,56 @@ const EVM_CHAINS: EvmChain[] = [
     priceId: null,
     fixedPrice: 1,
   },
+  {
+    name: "Arbitrum",
+    type: "Layer 2",
+    symbol: "ETH",
+    rpc: ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com"],
+    gasLimit: 21000,
+    priceId: "ethereum",
+  },
+  {
+    name: "Optimism",
+    type: "Layer 2",
+    symbol: "ETH",
+    rpc: ["https://mainnet.optimism.io", "https://optimism-rpc.publicnode.com"],
+    gasLimit: 21000,
+    priceId: "ethereum",
+  },
+  {
+    name: "Polygon",
+    type: "Layer 1",
+    symbol: "POL",
+    rpc: ["https://polygon-rpc.com", "https://polygon-bor-rpc.publicnode.com"],
+    gasLimit: 21000,
+    priceId: "matic-network",
+  },
+  {
+    name: "Avalanche",
+    type: "Layer 1",
+    symbol: "AVAX",
+    rpc: ["https://api.avax.network/ext/bc/C/rpc", "https://avalanche-c-chain-rpc.publicnode.com"],
+    gasLimit: 21000,
+    priceId: "avalanche-2",
+  },
+  {
+    name: "BNB Chain",
+    type: "Layer 1",
+    symbol: "BNB",
+    rpc: ["https://bsc-dataseed.bnbchain.org", "https://bsc-rpc.publicnode.com"],
+    gasLimit: 21000,
+    priceId: "binancecoin",
+  },
+  {
+    name: "Celo",
+    type: "Layer 2",
+    symbol: "CELO",
+    rpc: ["https://forno.celo.org", "https://celo-rpc.publicnode.com"],
+    gasLimit: 21000,
+    priceId: "celo",
+  },
 ];
+
 
 async function evmFee(chain: EvmChain, prices: Record<string, number>): Promise<ChainFee> {
   const base: ChainFee = {
