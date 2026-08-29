@@ -11,7 +11,22 @@ import {
 } from "@/components/ui/select";
 import { getChainFees } from "@/lib/fees.functions";
 
-export const SUPPORTED_CHAINS = ["Arc", "Ethereum", "Base", "Solana", "Sui", "Movement"] as const;
+export const SUPPORTED_CHAINS = [
+  "Arc",
+  "Ethereum",
+  "Base",
+  "Arbitrum",
+  "Optimism",
+  "Polygon",
+  "Avalanche",
+  "BNB Chain",
+  "Celo",
+  "Solana",
+  "Sui",
+  "Movement",
+  "Aptos",
+] as const;
+
 
 export const feesQueryOptions = queryOptions({
   queryKey: ["chain-fees"],
