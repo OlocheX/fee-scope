@@ -32,8 +32,16 @@ export function Footer() {
             ))}
           </nav>
         </div>
-        <div className="mt-8 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} FeeScope. Compare fees across Arc, Ethereum, Solana, and more.
+        <div className="mt-8 flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <span>© {new Date().getFullYear()} FeeScope. Compare fees across Arc, Ethereum, Solana, and more.</span>
+          <a
+            href="https://www.arc.net"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+          >
+            Built on Arc
+          </a>
         </div>
       </div>
     </footer>
