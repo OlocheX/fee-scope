@@ -55,6 +55,7 @@ function Column({
   network,
   stat,
   cheaper,
+  options,
 }: {
   label: string;
   value: string;
@@ -62,6 +63,7 @@ function Column({
   network: { usd: number | null; native: string | null; status: string } | undefined;
   stat: AddressStat | undefined;
   cheaper: boolean;
+  options: string[];
 }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -80,13 +82,14 @@ function Column({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {SUPPORTED_CHAINS.map((c) => (
+          {options.map((c) => (
             <SelectItem key={c} value={c}>
               {c}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
+
 
       <dl className="mt-4 space-y-3 text-sm">
         <div>
