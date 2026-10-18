@@ -48,24 +48,82 @@ function AuthPage() {
     };
   }, [next]);
 
+  const [mode, setMode] = useState<"form" | "verify" | "forgot">("form");
+  const [code, setCode] = useState("");
+  const [failed, setFailed] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const resendCode = async () => {
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
+    });
+    if (error) return toast.error(error.message);
+    setCooldown(60);
+    toast.success("Email sent again", { description: "Check your inbox and spam folder." });
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: "signup" });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Email confirmed");
+  };
+
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Reset link sent", { description: "Check your inbox and spam folder." });
+  };
+
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (activeTab === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
         });
         if (error) throw error;
-        toast.success("Check your email", {
-          description: "We sent a confirmation link to your inbox.",
-        });
+        if (data.user && data.user.identities?.length === 0) {
+          toast.error("This email already has an account", { description: "Sign in, or use Forgot password." });
+          setActiveTab("signin");
+          return;
+        }
+        setMode("verify");
+        setCooldown(60);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          const msg = error.message.toLowerCase();
+          if (msg.includes("not confirmed")) {
+            toast.error("Your email isn't confirmed yet");
+            setMode("verify");
+            return;
+          }
+          setFailed(true);
+          toast.error("Wrong email or password", {
+            description: "If you signed up with Google, use Continue with Google or reset your password.",
+          });
+          return;
+        }
         toast.success("Signed in");
         window.location.href = next;
       }
@@ -75,6 +133,51 @@ function AuthPage() {
       setLoading(false);
     }
   };
+
+  if (mode !== "form") {
+    return (
+      <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-sm">
+          {mode === "verify" ? (
+            <form onSubmit={handleVerify} className="space-y-4">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">Confirm your email</h1>
+              <p className="text-sm text-muted-foreground">
+                We emailed {email}. Click the link in the email, or enter the code if one is included. Check your spam folder too.
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="code">Code</Label>
+                <Input id="code" inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" maxLength={8} required />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Verify
+              </Button>
+              <Button type="button" variant="outline" className="w-full" disabled={cooldown > 0} onClick={resendCode}>
+                {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend email"}
+              </Button>
+              <button type="button" className="w-full text-sm text-muted-foreground underline" onClick={() => setMode("form")}>
+                Back
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleForgot} className="space-y-4">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">Reset your password</h1>
+              <p className="text-sm text-muted-foreground">Enter your email and we'll send you a link to set a new password.</p>
+              <div className="space-y-2">
+                <Label htmlFor="femail">Email</Label>
+                <Input id="femail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Send reset link
+              </Button>
+              <button type="button" className="w-full text-sm text-muted-foreground underline" onClick={() => setMode("form")}>
+                Back to sign in
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -176,6 +279,15 @@ function AuthPage() {
                   autoComplete="current-password"
                   minLength={8}
                 />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setMode("forgot")}
+                  className={failed ? "text-sm font-medium text-primary underline" : "text-sm text-muted-foreground hover:underline"}
+                >
+                  Forgot password?
+                </button>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
