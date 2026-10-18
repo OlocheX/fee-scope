@@ -29,6 +29,7 @@ function AuthPage() {
   const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const search = useSearch({ from: "/auth" }) as { next?: string };
@@ -96,6 +97,10 @@ function AuthPage() {
 
     try {
       if (activeTab === "signup") {
+        if (password !== confirmPassword) {
+          toast.error("Passwords don't match");
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
