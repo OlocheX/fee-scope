@@ -29,6 +29,7 @@ function AuthPage() {
   const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const search = useSearch({ from: "/auth" }) as { next?: string };
@@ -96,6 +97,10 @@ function AuthPage() {
 
     try {
       if (activeTab === "signup") {
+        if (password !== confirmPassword) {
+          toast.error("Passwords don't match");
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -323,6 +328,19 @@ function AuthPage() {
                   minLength={8}
                 />
                 <p className="text-xs text-muted-foreground">At least 8 characters.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                  minLength={8}
+                />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
