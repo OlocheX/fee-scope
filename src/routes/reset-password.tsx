@@ -38,11 +38,11 @@ function ResetPassword() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirm) return toast.error("Passwords don't match");
+    if (password !== confirm) { toast.error("Passwords don't match"); return; }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Password updated");
     navigate({ to: "/dashboard" });
   };

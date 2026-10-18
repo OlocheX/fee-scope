@@ -65,7 +65,7 @@ function AuthPage() {
       email,
       options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
     });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setCooldown(60);
     toast.success("Email sent again", { description: "Check your inbox and spam folder." });
   };
@@ -75,7 +75,7 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: "signup" });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Email confirmed");
   };
 
@@ -86,7 +86,7 @@ function AuthPage() {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Reset link sent", { description: "Check your inbox and spam folder." });
   };
 
